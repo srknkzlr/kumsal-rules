@@ -47,6 +47,24 @@ Alan ekleme/silme uygulama güncellemesi gerektirir (eski uygulamalar yeni şema
 
 Kuru koşu (API anahtarı gerekmez): `node canary/fix.mjs --dry-run --mock-response yanit.json [--snapshots dizin]`
 
+## Mac mini'de gece koşusu (birincil)
+
+akorlar.com Cloudflare'i GitHub'ın veri merkezi IP'lerini engelliyor (19.11.2026 ilk koşu: 403,
+"belirsiz"); ev bağlantısı geçiyor. Bu yüzden kanarya her gece 03:00'te (yerel saat) Mac mini'de
+`canary/run-local.sh` ile koşar; GitHub iş akışı (03:30 UTC) yedektir.
+
+Kurulum (bir kez, kalıcı kopyada — `~/projects/kumsal-rules`):
+
+```
+canary/install-local.sh                                    # launchd kaydı
+security add-generic-password -U -s kumsal-canary -a anthropic -w   # Anthropic anahtarı (sorar)
+launchctl kickstart gui/$(id -u)/com.kumsal.canary         # elle bir koşu
+tail -n 20 ~/Library/Logs/kumsal-canary/canary.log
+```
+
+Gereksinimler: Mac mini açık ve kullanıcı oturumu açık (anahtarlık erişilebilir); `git push` ve
+`gh` (issue) için GitHub kimliği geçerli. Ağ yoksa koşu sessizce atlanır (yanlış alarm yok).
+
 ## Issue açılırsa
 
 "KANARYA: <kaynak> kırık, otomatik tamir başarısız" — issue gövdesinde düşme nedenleri ve (varsa)
