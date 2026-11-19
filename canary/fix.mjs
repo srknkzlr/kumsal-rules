@@ -70,6 +70,38 @@ export function sameShape(oldBlock, candidate) {
     : typeof oldBlock[k] === typeof candidate[k] && (typeof candidate[k] !== "string" || candidate[k].trim()));
 }
 
+const getBlock = (rules, blockPath) => blockPath.reduce((node, key) => node?.[key], rules);
+function setBlock(rules, blockPath, block) {
+  const parent = blockPath.slice(0, -1).reduce((node, key) => node[key], rules);
+  parent[blockPath.at(-1)] = block;
+}
+
+/** Hızlı Başlangıç liste sayfası (quickstart.sources.*): beklenti asgari şarkı satırı. */
+async function askClaudeForList(target, block) {
+  const sourceId = target.blockPath.at(-1);
+  const html = trimHTML(target.html || "", ["/akorlar/", "song-list", "js-store"]);
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4000,
+    output_config: { format: { type: "json_schema", schema: schemaFor(block) } },
+    messages: [{
+      role: "user",
+      content:
+        `Bir mobil uygulamanın kural dosyasında "${sourceId}" LİSTE sayfası bloğu artık sayfayla eşleşmiyor; site HTML yapısını değiştirmiş.\n` +
+        `Görev: YALNIZ seçici DEĞERLERİNİ güncel HTML'e göre düzelt. Alan ekleme, silme, yeniden adlandırma YOK; aynı şemayı döndür; "rendered" değerini değiştirme.\n` +
+        `Alanlar: rowSelector = listedeki her şarkının bağlantısı (<a href>) için CSS seçicisi (ug'de: veriyi data-content özniteliğinde taşıyan öğe); ` +
+        `titleSelector / artistSelector = o bağlantının İÇİNDE şarkı adını / sanatçıyı taşıyan öğe (ug'de: JSON alan adı).\n\n` +
+        `Eski blok:\n${JSON.stringify(block, null, 2)}\n\n` +
+        `Kontrolün düşme nedenleri:\n- ${target.reasons.join("\n- ")}\n\n` +
+        `Sayfa adresi: ${target.url}\nBeklenen: sayfadaki şarkı listesinden en az birkaç on şarkı bağlantısı (ad + sanatçı).\n\n` +
+        `Güncel HTML (kırpılmış):\n${html}`,
+    }],
+  });
+  if (response.stop_reason !== "end_turn") throw new Error(`model yanıtı tamamlanmadı: ${response.stop_reason}`);
+  return JSON.parse(response.content.find((b) => b.type === "text")?.text ?? "");
+}
+
 async function askClaude(sourceId, block, failure) {
   const fixture = fixtures.sources.find((s) => s.id === sourceId);
   const html = trimHTML(failure.html || "", [...fixture.lyrics, fixture.title]);
@@ -104,11 +136,14 @@ async function main() {
     console.log("Kırık kaynak yok; tamir gerekmiyor.");
     return 0;
   }
-  // Korkuluk: koşu başına en çok 1 tamir denemesi — ilk kırık SAĞLAYICI kaynağı.
-  const target = failures.find((f) => f.id in rules.providers);
+  // Korkuluk: koşu başına en çok 1 tamir denemesi — ilk kırık SAĞLAYICI ya da LİSTE bloğu
+  // (blockPath taşıyan: providers.* / quickstart.sources.*).
+  const target = failures.find((f) => f.blockPath && getBlock(rules, f.blockPath));
+  const oldBlock = target ? getBlock(rules, target.blockPath) : undefined;
+  const isList = target?.blockPath[0] === "quickstart";
   const others = failures.filter((f) => f !== target).map((f) => `${f.id}: ${f.reasons.join("; ")}`);
   if (!target) {
-    lines.push("Otomatik tamir kapsamı dışında kırık (yalnız sağlayıcı blokları tamir edilir):", ...others);
+    lines.push("Otomatik tamir kapsamı dışında kırık (yalnız sağlayıcı ve liste blokları tamir edilir):", ...others);
     console.log(lines.join("\n"));
     return 2;
   }
@@ -116,13 +151,14 @@ async function main() {
 
   let candidateBlock;
   try {
-    candidateBlock = mockFile ? JSON.parse(fs.readFileSync(mockFile, "utf8")) : await askClaude(target.id, rules.providers[target.id], target);
+    candidateBlock = mockFile ? JSON.parse(fs.readFileSync(mockFile, "utf8"))
+      : isList ? await askClaudeForList(target, oldBlock) : await askClaude(target.id, oldBlock, target);
   } catch (error) {
     lines.push(`Tamir önerisi alınamadı: ${error.message}`);
     console.log(lines.join("\n"));
     return 2;
   }
-  if (!sameShape(rules.providers[target.id], candidateBlock)) {
+  if (!sameShape(oldBlock, candidateBlock)) {
     lines.push("Aday reddedildi: şema değişmiş (alan eklenmiş/silinmiş ya da tip farklı).");
     console.log(lines.join("\n"));
     return 2;
@@ -130,7 +166,7 @@ async function main() {
 
   // DOĞRULAMA KAPISI
   const candidate = structuredClone(rules);
-  candidate.providers[target.id] = candidateBlock;
+  setBlock(candidate, target.blockPath, candidateBlock);
   const after = await runChecks(candidate, { snapshots });
   const fixed = after.find((r) => r.id === target.id);
   const regressions = after.filter((r) => r.status === "fail" && before.find((b) => b.id === r.id)?.status !== "fail");

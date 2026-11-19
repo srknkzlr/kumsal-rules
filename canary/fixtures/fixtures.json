@@ -6,26 +6,70 @@
       "url": "https://akorlar.com/gokhan-turkmen-cati-kati",
       "title": "Çatı Katı",
       "artist": "Gökhan Türkmen",
-      "lyrics": ["inziva vakti", "haklının hakkı"],
-      "chords": ["Em", "D", "C", "Bm"]
+      "lyrics": [
+        "inziva vakti",
+        "haklının hakkı"
+      ],
+      "chords": [
+        "Em",
+        "D",
+        "C",
+        "Bm"
+      ]
     },
     {
       "id": "akorlab",
       "url": "https://akorlab.com/akorlar/mor-ve-otesi/bir-derdim-var",
       "title": "Bir Derdim Var",
       "artist": "Mor ve Ötesi",
-      "lyrics": ["tutamam içimde", "nereye kadar"],
-      "chords": ["Bm", "Bm7", "Bsus2", "Em7"]
+      "lyrics": [
+        "tutamam içimde",
+        "nereye kadar"
+      ],
+      "chords": [
+        "Bm",
+        "Bm7",
+        "Bsus2",
+        "Em7"
+      ]
     },
     {
       "id": "ultimateGuitar",
       "url": "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-39144",
       "title": "Wonderwall",
       "artist": "Oasis",
-      "lyrics": ["gonna be the day"],
-      "chords": ["Em7", "G", "Dsus4", "A7sus4"]
+      "lyrics": [
+        "gonna be the day"
+      ],
+      "chords": [
+        "Em7",
+        "G",
+        "Dsus4",
+        "A7sus4"
+      ]
     }
   ],
+  "lists": [
+    {
+      "source": "akorlab",
+      "locale": "tr",
+      "category": "rock",
+      "minSongs": 8
+    },
+    {
+      "source": "akorlar",
+      "locale": "tr",
+      "category": "popular",
+      "minSongs": 40
+    },
+    {
+      "source": "ug",
+      "locale": "en",
+      "category": "popular",
+      "minSongs": 30
+    }
+  ],
+  "listsNote": "Hızlı Başlangıç liste sayfaları: kategori adresi rules.json → quickstart.locales'ten okunur; beklenti yalnız asgari şarkı satırı sayısı (19.11.2026: akorlab tür bölümü 12, akorlar popüler 162, UG explore 50).",
   "google": {
     "query": "wonderwall chords",
     "minResults": 3

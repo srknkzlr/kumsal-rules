@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "updatedAt": "2026-11-19T00:00:00Z",
+  "version": 2,
+  "updatedAt": "2026-11-19T12:00:00Z",
   "flags": {
     "serpListEnabled": true,
     "genericCaptureEnabled": true,
@@ -56,6 +56,35 @@
     "ultimateGuitar": {
       "tabPathPattern": "^/tab/[^/]+/[a-z0-9-]+-\\d+/?$",
       "storeSelector": "div.js-store"
+    }
+  },
+  "quickstart": {
+    "cacheHours": 48,
+    "timeoutSeconds": 6,
+    "poolSize": 40,
+    "showCount": 14,
+    "sources": {
+      "akorlab": {"rowSelector": "section#sarki-akorlari a[href^=\"/akorlar/\"]", "titleSelector": "span > span", "artistSelector": "span > span > span", "rendered": true},
+      "akorlar": {"rowSelector": "ul.song-list > li > a", "titleSelector": "span.name > b", "artistSelector": "span.name > small", "rendered": false},
+      "ug": {"rowSelector": "div.js-store", "titleSelector": "song_name", "artistSelector": "artist_name", "rendered": false}
+    },
+    "locales": {
+      "tr": [
+        {"id": "popular", "title": "Popüler", "url": "https://www.akorlar.com/populer-akorlar", "source": "akorlar"},
+        {"id": "rock", "title": "Rock", "url": "https://akorlab.com/akorlar?genre=rock", "source": "akorlab"},
+        {"id": "pop", "title": "Akustik & Pop", "url": "https://akorlab.com/akorlar?genre=pop", "source": "akorlab"},
+        {"id": "folk", "title": "Türkü & Halk", "url": "https://akorlab.com/akorlar?genre=turku", "source": "akorlab"},
+        {"id": "arabesk", "title": "Arabesk", "url": "https://akorlab.com/akorlar?genre=arabesk", "source": "akorlab"},
+        {"id": "foreign", "title": "Yabancı", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc", "source": "ug"}
+      ],
+      "en": [
+        {"id": "popular", "title": "Popular", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc", "source": "ug"},
+        {"id": "rock", "title": "Rock", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc&genres[]=4", "source": "ug"},
+        {"id": "pop", "title": "Pop", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc&genres[]=14", "source": "ug"},
+        {"id": "folk", "title": "Folk & Acoustic", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc&genres[]=666", "source": "ug"},
+        {"id": "country", "title": "Country", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc&genres[]=49", "source": "ug"},
+        {"id": "90s", "title": "90s", "url": "https://www.ultimate-guitar.com/explore?type[]=Chords&order=hitstotal_desc&decade[]=1990", "source": "ug"}
+      ]
     }
   }
 }

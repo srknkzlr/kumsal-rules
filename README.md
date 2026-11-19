@@ -19,12 +19,28 @@ seçicileri burada güncellemek. Bayraklar (`flags`) bir özelliği uzaktan kapa
 | `genericCaptureEnabled` | Arama motorundan tanınmayan siteye dokunuş yakalanmaz |
 | `smartPreviewEnabled` | Hiçbir bağlantı yakalanmaz (akıllı önizleme tamamen kapalı) |
 
+## Hızlı Başlangıç bölümü (`quickstart`)
+
+Boş defteri dolduran "Hızlı Başlangıç" listelerinin yapılandırması (uygulama 1.4.0+; eski sürümler
+bölümü yok sayar). Bölüm yoksa ya da bozuksa uygulama pakete gömülü kopyadaki bölümü kullanır —
+köprü kuralları bundan etkilenmez.
+
+| Alan | Anlamı |
+|---|---|
+| `cacheHours` / `timeoutSeconds` | Liste önbelleği (saat) / kaynak başına toplam süre (sn) |
+| `poolSize` / `showCount` | Kategori başına havuz / ekranda gösterilen satır |
+| `sources.{akorlab,akorlar,ug}` | Liste sayfası seçicileri: `rowSelector` (şarkı bağlantısı; ug'de `data-content` taşıyan öğe), `titleSelector` / `artistSelector` (bağlantının içinde; ug'de JSON alan adı), `rendered` (liste yalnız tarayıcıda çiziliyorsa `true` → düz istek atlanır) |
+| `locales.{tr,en}[]` | Kategori çipleri: `id` (telemetri değeri), `title` (çip metni), `url` (liste sayfası), `source` |
+
+Kategori eklemek/çıkarmak ya da bir kategorinin adresini değiştirmek için yalnız `locales` düzenlenir
+(`version+1`); yeni `source` türü uygulama güncellemesi gerektirir.
+
 ## Nasıl güncellenir (elle)
 
 1. `rules.json`'da değeri düzelt, **`version`'ı 1 artır**, `updatedAt`'i güncelle.
    Uygulama sürümü düşük ya da şeması/değerleri geçersiz bir dosyayı **reddeder** ve önceki
    geçerli kurallarla devam eder — bozuk bir yayın uygulamayı bozamaz.
-2. Yerelde sına: `npm ci && mkdir -p canary/bin && swiftc -O canary/fetch.swift -o canary/bin/fetch && node canary/check.mjs`
+2. Yerelde sına: `npm ci && mkdir -p canary/bin && swiftc -O canary/fetch.swift -o canary/bin/fetch && swiftc -O canary/render.swift -o canary/bin/render && node canary/check.mjs`
 3. `main`'e push et. Uygulamalar 24 saat içinde (ya da sonraki açılışta) alır.
 
 Alan ekleme/silme uygulama güncellemesi gerektirir (eski uygulamalar yeni şemayı reddeder).
@@ -38,8 +54,13 @@ Alan ekleme/silme uygulama güncellemesi gerektirir (eski uygulamalar yeni şema
    (başlık, sanatçı, birkaç akor, kısa söz parçaları) karşılaştırır. Google için sabit sorguda
    asgari organik sonuç sayısına bakar.
    - Cloudflare doğrulaması ve Google izin/JavaScript sayfası **belirsiz** sayılır, hata değil.
+   - **Hızlı Başlangıç liste sayfaları** (`quickstart.akorlab`, `quickstart.akorlar`,
+     `quickstart.ug`): kategori adresi `rules.json → quickstart.locales`'ten okunur, `quickstart.sources`
+     seçicileriyle asgari N şarkı satırı (fixtures `lists[].minSongs`) çıkarılabiliyor mu diye bakılır.
+     akorlab tür listesi istemcide çizildiği için WKWebView çizicisiyle (`canary/render.swift`) okunur;
+     çizici yoksa/sayfa üretemezse kontrol **belirsiz** kalır.
 2. Bir kaynak kırıksa `canary/fix.mjs` koşar: güncel HTML'i kırpıp Claude'a (Haiku) gönderir,
-   yalnız o kaynağın seçici değerleri için aday alır. **Doğrulama kapısı:** aday kurallarla kontrol
+   yalnız o kaynağın (sağlayıcı bloğu ya da `quickstart.sources.*` liste bloğu) seçici değerleri için aday alır. **Doğrulama kapısı:** aday kurallarla kontrol
    yeniden koşar; geçerse `version+1` ile bot commit'i atılır
    (`canary: <kaynak> seçicileri otomatik tazelendi`), geçmezse hiçbir şey yazılmaz ve issue açılır.
    Korkuluklar: koşu başına en çok 1 tamir; betik yalnız `rules.json` yazar; şema alanı eklenemez,

@@ -5,7 +5,11 @@
 // (exit 0). Bir kaynak "kırık"sa exit 1. Cloudflare doğrulaması / Google izin-JavaScript sayfası
 // "belirsiz" sayılır, HATA SAYILMAZ (veri merkezi IP'lerinin bilinen sınırı).
 //
-// Kullanım: node canary/check.mjs [--rules rules.json] [--only akorlar] [--snapshots dir] [--json]
+// Hızlı Başlangıç (rules.json → quickstart): üç liste sayfası (akorlab tür, akorlar popüler, UG
+// explore) için kategori adresinden asgari N şarkı satırı çıkarılabiliyor mu diye bakılır; akorlab
+// listesi istemcide çizildiği için WKWebView çizicisiyle (canary/render.swift) okunur.
+//
+// Kullanım: node canary/check.mjs [--rules rules.json] [--only akorlar,quickstart.ug] [--snapshots dir] [--json]
 // Bu betik HİÇBİR dosyaya yazmaz.
 
 import * as cheerio from "cheerio";
@@ -19,6 +23,7 @@ export const ROOT = path.resolve(here, "..");
 export const RULES_PATH = path.join(ROOT, "rules.json");
 const FIXTURES = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "fixtures.json"), "utf8"));
 const FETCHER = path.join(here, "bin", "fetch");
+const RENDERER = path.join(here, "bin", "render");
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 
 export const fixtures = FIXTURES;
@@ -47,6 +52,18 @@ export async function fetchPage(url, { snapshots } = {}) {
   } catch (error) {
     return { status: 0, html: "", error: String(error) };
   }
+}
+
+/** Çizilmiş sayfa (WKWebView; canary/render.swift). Çizici yoksa `null` → kontrol "belirsiz". */
+export async function renderPage(url, readySelector, { snapshots } = {}) {
+  if (snapshots) return fetchPage(url, { snapshots });
+  if (!fs.existsSync(RENDERER)) return null;
+  return await new Promise((resolve) => {
+    execFile(RENDERER, [url, readySelector, "12"], { maxBuffer: 20 * 1024 * 1024, timeout: 40000 }, (error, stdout, stderr) => {
+      const match = /status (\d+)/.exec(stderr || "");
+      resolve({ status: match ? Number(match[1]) : 0, html: stdout || "" });
+    });
+  });
 }
 
 /** Bot duvarı: Cloudflare doğrulaması → belirsiz (seçici kırığı DEĞİL). */
@@ -134,7 +151,63 @@ export async function checkSource(rules, fixture, options = {}) {
   // Akıl sağlığı (kural dışı): sayfa hâlâ o şarkı mı — tutmazsa tamir edilemez, issue açılır.
   const pageText = fixture.id === "ultimateGuitar" ? page.html : $("title").text() + " " + $("h1").text() + " " + $("body").text();
   reasons.push(...missing(pageText, [fixture.title, fixture.artist], "başlık/sanatçı"));
-  return { id: fixture.id, status: reasons.length ? "fail" : "ok", reasons, html: page.html };
+  return { id: fixture.id, blockPath: ["providers", fixture.id], status: reasons.length ? "fail" : "ok", reasons, html: page.html };
+}
+
+// MARK: Hızlı Başlangıç liste sayfaları (quickstart bölümü)
+
+/** Liste sayfasından şarkı satırları: uygulamadaki `QuickStartListParser` ile aynı kurallar. */
+export function listSongs(rules, sourceId, html, pageUrl) {
+  const block = rules.quickstart.sources[sourceId];
+  const $ = cheerio.load(html || "");
+  if (sourceId === "ug") {
+    const raw = $(block.rowSelector).first().attr("data-content");
+    let tabs = [];
+    try { tabs = JSON.parse(raw).store.page.data.data.tabs || []; } catch { return []; }
+    const pattern = rules.providers.ultimateGuitar.tabPathPattern;
+    return tabs.filter((tab) => {
+      if (tab.type && String(tab.type).toLowerCase() !== "chords") return false;
+      if (typeof tab[block.titleSelector] !== "string" || !tab[block.titleSelector]) return false;
+      try { return matches(new URL(tab.tab_url).pathname.toLowerCase(), pattern); } catch { return false; }
+    }).map((tab) => ({ title: tab[block.titleSelector], artist: tab[block.artistSelector] || "", url: tab.tab_url }));
+  }
+  const provider = rules.providers[sourceId];
+  const songs = [];
+  $(block.rowSelector).each((_, el) => {
+    let url;
+    try { url = new URL($(el).attr("href") || "", pageUrl); } catch { return; }
+    const urlPath = url.pathname.toLowerCase();
+    if (!matches(urlPath, provider.songPathPattern)) return;
+    if ((provider.nonSongPaths || []).includes(urlPath.replace(/^\/|\/$/g, ""))) return;
+    const title = squash($(el).find(block.titleSelector).first().text());
+    if (!title) return;
+    songs.push({ title, artist: squash($(el).find(block.artistSelector).first().text()), url: url.href });
+  });
+  return songs;
+}
+
+/** Tek liste sayfası: kategori adresi rules.json'dan; asgari N şarkı çıkarılabiliyor mu? */
+export async function checkList(rules, fixture, options = {}) {
+  const sourceId = fixture.source;
+  const id = `quickstart.${sourceId}`;
+  const blockPath = ["quickstart", "sources", sourceId];
+  const category = (rules.quickstart?.locales?.[fixture.locale] || []).find((c) => c.id === fixture.category);
+  const block = rules.quickstart?.sources?.[sourceId];
+  if (!category || !block || category.source !== sourceId) {
+    return { id, blockPath, status: "fail", reasons: [`quickstart: ${fixture.locale}/${fixture.category} (${sourceId}) kural dosyasında yok`] };
+  }
+  const page = block.rendered ? await renderPage(category.url, block.rowSelector, options) : await fetchPage(category.url, options);
+  if (page === null) return { id, blockPath, status: "inconclusive", reasons: ["çizici yok (canary/bin/render derlenmemiş)"] };
+  if (isBotWall(page)) return { id, blockPath, status: "inconclusive", reasons: [`bot duvarı (HTTP ${page.status})`] };
+  if (page.status === 0 || page.status >= 400) {
+    // Çizici ekransız ortamda sayfa üretemeyebilir: seçici kırığı değil.
+    const status = block.rendered ? "inconclusive" : "fail";
+    return { id, blockPath, status, reasons: [`sayfa gelmedi (HTTP ${page.status})`], html: page.html, url: category.url };
+  }
+  const songs = listSongs(rules, sourceId, page.html, category.url);
+  const reasons = songs.length >= fixture.minSongs ? []
+    : [`liste: ${songs.length} şarkı < ${fixture.minSongs} (rowSelector: ${block.rowSelector})`];
+  return { id, blockPath, status: reasons.length ? "fail" : "ok", reasons, html: page.html, url: category.url, count: songs.length };
 }
 
 /** Google: sabit sorgu, organik sonuç sayısı ≥ beklenen. İzin / JavaScript sayfası → belirsiz. */
@@ -166,6 +239,10 @@ export async function runChecks(rules, { only, snapshots } = {}) {
   for (const fixture of FIXTURES.sources) {
     if (only && !only.includes(fixture.id)) continue;
     results.push(await checkSource(rules, fixture, { snapshots }));
+  }
+  for (const fixture of FIXTURES.lists || []) {
+    if (only && !only.includes(`quickstart.${fixture.source}`) && !only.includes("quickstart")) continue;
+    results.push(await checkList(rules, fixture, { snapshots }));
   }
   if (!only || only.includes("google")) results.push(await checkGoogle(rules, { snapshots }));
   return results;

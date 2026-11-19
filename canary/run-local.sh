@@ -27,6 +27,10 @@ npm ci --silent --no-audit --no-fund || { echo "npm ci başarısız."; exit 1; }
 if [ ! -x canary/bin/fetch ] || [ canary/fetch.swift -nt canary/bin/fetch ]; then
   mkdir -p canary/bin && swiftc -O canary/fetch.swift -o canary/bin/fetch || { echo "getirici derlenemedi."; exit 1; }
 fi
+# Çizici (WKWebView): akorlab tür listesi istemcide çiziliyor. Derlenemezse o kontrol "belirsiz" kalır.
+if [ ! -x canary/bin/render ] || [ canary/render.swift -nt canary/bin/render ]; then
+  swiftc -O canary/render.swift -o canary/bin/render || echo "çizici derlenemedi (quickstart.akorlab belirsiz kalır)."
+fi
 
 if node canary/check.mjs; then
   echo "Kırık yok."

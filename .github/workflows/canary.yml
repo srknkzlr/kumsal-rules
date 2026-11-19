@@ -33,6 +33,10 @@ jobs:
       - name: Getirici (URLSession)
         run: mkdir -p canary/bin && swiftc -O canary/fetch.swift -o canary/bin/fetch
 
+      - name: Çizici (WKWebView — akorlab tür listesi)
+        continue-on-error: true
+        run: swiftc -O canary/render.swift -o canary/bin/render
+
       - name: Kontrol
         id: check
         continue-on-error: true
