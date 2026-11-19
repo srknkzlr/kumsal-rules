@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-19T00:00:00Z",
+  "flags": {
+    "serpListEnabled": true,
+    "genericCaptureEnabled": true,
+    "smartPreviewEnabled": true
+  },
+  "serp": {
+    "resultContainer": "#rso",
+    "headingSelector": "h3, [role=heading]",
+    "adContainers": ["#tads", "#tadsb", "#bottomads"],
+    "adMarkerSelector": "[data-text-ad]",
+    "adHrefPattern": "/aclk\\b|googleadservices",
+    "consentHostPattern": "consent\\.google\\.",
+    "consentFormSelector": "form[action*=\"consent\"]",
+    "faviconMarker": "faviconV2",
+    "throttleMarker": "http-equiv=\"refresh\"",
+    "candidateLimit": 16,
+    "maxResults": 8,
+    "timing": {
+      "pageLoadSeconds": 12,
+      "tier2WindowSeconds": 8,
+      "resolveIntervalMs": 1000,
+      "redirectTimeoutSeconds": 3,
+      "previewTimeoutSeconds": 8
+    }
+  },
+  "searchEngines": [
+    { "domainPattern": "^(.+\\.)?google\\.[a-z.]+$", "redirectPaths": ["/goto", "/url"], "redirectPathPrefixes": [], "redirectHostPrefixes": [] },
+    { "domainPattern": "^(.+\\.)?bing\\.com$", "redirectPaths": [], "redirectPathPrefixes": ["/ck/"], "redirectHostPrefixes": [] },
+    { "domainPattern": "^(.+\\.)?yandex\\.[a-z.]+$", "redirectPaths": [], "redirectPathPrefixes": ["/clck"], "redirectHostPrefixes": ["clck."] },
+    { "domainPattern": "^(.+\\.)?duckduckgo\\.com$", "redirectPaths": ["/l/", "/l"], "redirectPathPrefixes": [], "redirectHostPrefixes": [] }
+  ],
+  "blocklist": ["youtube.com", "youtu.be", "spotify.com", "wikipedia.org", "instagram.com", "facebook.com", "tiktok.com", "apple.com"],
+  "precheck": {
+    "minCandidateLines": 3,
+    "minMultiChordLines": 2,
+    "timeoutSeconds": 3
+  },
+  "domainMemory": {
+    "failureThreshold": 2,
+    "ttlDays": 7
+  },
+  "providers": {
+    "akorlar": {
+      "songMarkers": ["pre#akor", "pre#key"],
+      "chordContainers": ["pre#akor", "pre.chords", "pre#key"],
+      "songPathPattern": "^/[a-z0-9]+(-[a-z0-9]+)+/?$",
+      "nonSongPaths": ["populer-akorlar", "gitar-akort-et", "icerik-ekle", "video-ekle"]
+    },
+    "akorlab": {
+      "songMarkers": [".chord-touch-target"],
+      "songPathPattern": "^/akorlar/[^/@][^/]*/[^/]+/?$"
+    },
+    "ultimateGuitar": {
+      "tabPathPattern": "^/tab/[^/]+/[a-z0-9-]+-\\d+/?$",
+      "storeSelector": "div.js-store"
+    }
+  }
+}

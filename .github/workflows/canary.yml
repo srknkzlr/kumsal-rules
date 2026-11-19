@@ -1,0 +1,75 @@
+name: canary
+
+# Her gece rules.json'ı canlı sayfalara karşı sınar; kırıkta otomatik tamir dener.
+# macOS: sayfalar uygulamayla aynı Apple ağ yığınıyla (URLSession) çekilir — akorlar.com /
+# akorlab.com Cloudflare'i Node/curl istemcisini engelliyor.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Getirici (URLSession)
+        run: mkdir -p canary/bin && swiftc -O canary/fetch.swift -o canary/bin/fetch
+
+      - name: Kontrol
+        id: check
+        continue-on-error: true
+        run: node canary/check.mjs
+
+      - name: Otomatik tamir
+        id: fix
+        if: steps.check.outcome == 'failure'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -o pipefail
+          node canary/fix.mjs | tee fix-output.txt
+          echo "source=$(grep -o 'FIXED_SOURCE=.*' fix-output.txt | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Tamiri yayınla
+        if: steps.fix.outcome == 'success'
+        run: |
+          git config user.name "kumsal-canary[bot]"
+          git config user.email "kumsal-canary@users.noreply.github.com"
+          git add rules.json
+          if git diff --cached --quiet; then echo "Değişiklik yok."; exit 0; fi
+          git commit -m "canary: ${{ steps.fix.outputs.source }} seçicileri otomatik tazelendi"
+          git push
+
+      - name: Issue aç
+        if: steps.check.outcome == 'failure' && steps.fix.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s fix-output.txt ] || node canary/check.mjs > fix-output.txt || true
+          SOURCE=$(grep -o '^Kaynak: .*' fix-output.txt | head -1 | cut -d' ' -f2)
+          TITLE="KANARYA: ${SOURCE:-kural} kırık, otomatik tamir başarısız"
+          if gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq 'length' | grep -qv '^0$'; then
+            gh issue comment "$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number')" \
+              --body-file fix-output.txt
+          else
+            gh issue create --title "$TITLE" --body-file fix-output.txt
+          fi

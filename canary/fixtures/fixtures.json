@@ -1,0 +1,33 @@
+{
+  "note": "Yer gerçeği: eski/durağan şarkı sayfaları + değişmeyecek kısa değerler. Söz parçaları bilerek kısa tutuldu (yalnız tanıma için, içerik değil).",
+  "sources": [
+    {
+      "id": "akorlar",
+      "url": "https://akorlar.com/gokhan-turkmen-cati-kati",
+      "title": "Çatı Katı",
+      "artist": "Gökhan Türkmen",
+      "lyrics": ["inziva vakti", "haklının hakkı"],
+      "chords": ["Em", "D", "C", "Bm"]
+    },
+    {
+      "id": "akorlab",
+      "url": "https://akorlab.com/akorlar/mor-ve-otesi/bir-derdim-var",
+      "title": "Bir Derdim Var",
+      "artist": "Mor ve Ötesi",
+      "lyrics": ["tutamam içimde", "nereye kadar"],
+      "chords": ["Bm", "Bm7", "Bsus2", "Em7"]
+    },
+    {
+      "id": "ultimateGuitar",
+      "url": "https://tabs.ultimate-guitar.com/tab/oasis/wonderwall-chords-39144",
+      "title": "Wonderwall",
+      "artist": "Oasis",
+      "lyrics": ["gonna be the day"],
+      "chords": ["Em7", "G", "Dsus4", "A7sus4"]
+    }
+  ],
+  "google": {
+    "query": "wonderwall chords",
+    "minResults": 3
+  }
+}

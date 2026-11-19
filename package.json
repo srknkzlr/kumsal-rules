@@ -1,0 +1,14 @@
+{
+  "name": "kumsal-rules-canary",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node canary/check.mjs",
+    "fix": "node canary/fix.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "cheerio": "^1.0.0"
+  }
+}
