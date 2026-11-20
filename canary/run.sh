@@ -6,7 +6,7 @@
 # Akış: ağ yoksa sessizce çık → git pull → kontrol → kırıksa tamir (doğrulama kapısı fix.mjs'te)
 # → geçti: rules.json commit + push, 🟢 bildirim; geçmedi: push YOK, 🔴 bildirim + issue.
 # Olaysız gecede hiçbir bildirim yok.
-# Gizliler: ~/.config/kumsal-canary/env (chmod 600; ANTHROPIC_API_KEY, NTFY_TOPIC) — repoya girmez.
+# Gizliler: ~/.config/kumsal-canary/env (chmod 600; ANTHROPIC_API_KEY, NTFY_TOPIC, IMESSAGE_TO) — repoya girmez.
 # Günlük: ~/Library/Logs/kumsal-canary.log
 
 set -uo pipefail
@@ -19,15 +19,33 @@ echo "=== $(date '+%Y-%m-%d %H:%M:%S %Z')"
 
 ANTHROPIC_API_KEY=""
 NTFY_TOPIC=""
+IMESSAGE_TO=""
 # shellcheck disable=SC1090
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 [ "$ANTHROPIC_API_KEY" = "BURAYA_YAPISTIR" ] && ANTHROPIC_API_KEY=""
 
-notify() {  # tek satır; konu tanımlı değilse sessiz
-  [ -n "$NTFY_TOPIC" ] || return 0
-  curl -s -m 15 -H "Title: Kumsal kanarya" -d "$1" "https://ntfy.sh/$NTFY_TOPIC" >/dev/null \
-    || echo "ntfy bildirimi gönderilemedi."
+notify() {  # tek satır; ntfy ve/veya iMessage — hangisi tanımlıysa. İkisi de boşsa sessiz.
+  if [ -n "$NTFY_TOPIC" ]; then
+    curl -s -m 15 -H "Title: Kumsal kanarya" -d "$1" "https://ntfy.sh/$NTFY_TOPIC" >/dev/null \
+      || echo "ntfy bildirimi gönderilemedi."
+  fi
+  if [ -n "$IMESSAGE_TO" ]; then
+    osascript - "$IMESSAGE_TO" "Kumsal kanarya: $1" <<'APPLESCRIPT' >/dev/null && echo "iMessage gönderildi." || echo "iMessage gönderilemedi."
+on run argv
+  tell application "Messages"
+    set svc to 1st account whose service type = iMessage
+    send (item 2 of argv) to participant (item 1 of argv) of svc
+  end tell
+end run
+APPLESCRIPT
+  fi
 }
+
+# Bildirim denemesi: canary/run.sh --test-notify (kontrol koşmaz).
+if [ "${1:-}" = "--test-notify" ]; then
+  notify "🟢 deneme bildirimi — kanal çalışıyor"
+  exit 0
+fi
 
 # Ağ yoksa yanlış alarm verme.
 if [ "$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://github.com)" != "200" ]; then

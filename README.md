@@ -81,15 +81,18 @@ Kurulum (bir kez, kalıcı kopyada — `~/projects/kumsal-rules`):
 
 ```
 canary/install-local.sh                                # launchd kaydı + gizliler dosyası iskeleti
-$EDITOR ~/.config/kumsal-canary/env                    # ANTHROPIC_API_KEY=... (ve isteğe bağlı NTFY_TOPIC=...)
+$EDITOR ~/.config/kumsal-canary/env                    # ANTHROPIC_API_KEY=... (isteğe bağlı NTFY_TOPIC=, IMESSAGE_TO=)
 launchctl kickstart gui/$(id -u)/com.kumsal.canary     # elle bir koşu
 tail -n 20 ~/Library/Logs/kumsal-canary.log
 ```
 
 - **Gizliler:** `~/.config/kumsal-canary/env` (chmod 600; `run.sh` source'lar). Anahtar repoya
   ASLA girmez. Anahtar boşsa yalnız kontrol koşar; kırıkta tamir denenmez, "tamir edilemedi" sayılır.
-- **Bildirim:** `NTFY_TOPIC` tanımlıysa `ntfy.sh/<topic>`'e tek satır — 🟢 tamir edildi /
-  🔴 tamir edilemedi. Tamir edilemediyse ayrıca issue (`gh` kuruluysa). Olaysız gecede bildirim yok.
+- **Bildirim:** `NTFY_TOPIC` tanımlıysa `ntfy.sh/<topic>`'e, `IMESSAGE_TO` (telefon/e-posta)
+  tanımlıysa iMessage ile tek satır — 🟢 tamir edildi / 🔴 tamir edilemedi. Tamir edilemediyse
+  ayrıca issue (`gh` kuruluysa). Olaysız gecede bildirim yok. Kanalı denemek:
+  `launchctl kickstart` yerine `canary/run.sh --test-notify` (ilk seferde macOS, Messages'ı
+  denetleme izni sorar).
 - **Günlük:** `~/Library/Logs/kumsal-canary.log` (her koşu eklenir).
 
 Gereksinimler: Mac mini açık ve kullanıcı oturumu açık; `git push` ve `gh` (issue) için GitHub

@@ -13,7 +13,7 @@ chmod +x "$REPO_DIR/canary/run.sh"
 # Gizliler dosyası (repo dışında; var olan dosyaya dokunulmaz).
 mkdir -p "$ENV_DIR" && chmod 700 "$ENV_DIR"
 if [ ! -f "$ENV_DIR/env" ]; then
-  ( umask 077; printf 'ANTHROPIC_API_KEY=BURAYA_YAPISTIR\nNTFY_TOPIC=\n' > "$ENV_DIR/env" )
+  ( umask 077; printf 'ANTHROPIC_API_KEY=BURAYA_YAPISTIR\nNTFY_TOPIC=\nIMESSAGE_TO=\n' > "$ENV_DIR/env" )
 fi
 chmod 600 "$ENV_DIR/env"
 
