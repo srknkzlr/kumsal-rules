@@ -1,11 +1,13 @@
 name: canary
 
-# Her gece rules.json'ı canlı sayfalara karşı sınar; kırıkta otomatik tamir dener.
+# rules.json'ı canlı sayfalara karşı sınar; kırıkta otomatik tamir dener.
+# Zamanlanmış koşu Mac mini'de (launchd, canary/run.sh); Actions yalnız elle tetikleme —
+# GitHub koşucuları akorlar.com'a erişemiyor (Cloudflare 403).
 # macOS: sayfalar uygulamayla aynı Apple ağ yığınıyla (URLSession) çekilir — akorlar.com /
 # akorlab.com Cloudflare'i Node/curl istemcisini engelliyor.
 on:
-  schedule:
-    - cron: "30 3 * * *"
+  # schedule:
+  #   - cron: "30 3 * * *"
   workflow_dispatch:
 
 permissions:

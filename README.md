@@ -47,7 +47,9 @@ Alan ekleme/silme uygulama güncellemesi gerektirir (eski uygulamalar yeni şema
 
 ## Gece kanaryası
 
-`.github/workflows/canary.yml` — her gece 03:30 UTC ve elle (Actions → canary → Run workflow).
+**Zamanlanmış koşu Mac mini'de (launchd); Actions yalnız elle tetikleme.** Her gece 03:30'da
+(yerel saat) `canary/run.sh` koşar; `.github/workflows/canary.yml` yalnız elle çalışır
+(Actions → canary → Run workflow; cron devre dışı).
 
 1. `canary/check.mjs`: `canary/fixtures/fixtures.json`'daki durağan şarkı sayfalarını (akorlar.com,
    akorlab.com, Ultimate Guitar) çeker, kural seçicilerini uygular, sonucu yer gerçeğiyle
@@ -62,29 +64,36 @@ Alan ekleme/silme uygulama güncellemesi gerektirir (eski uygulamalar yeni şema
 2. Bir kaynak kırıksa `canary/fix.mjs` koşar: güncel HTML'i kırpıp Claude'a (Haiku) gönderir,
    yalnız o kaynağın (sağlayıcı bloğu ya da `quickstart.sources.*` liste bloğu) seçici değerleri için aday alır. **Doğrulama kapısı:** aday kurallarla kontrol
    yeniden koşar; geçerse `version+1` ile bot commit'i atılır
-   (`canary: <kaynak> seçicileri otomatik tazelendi`), geçmezse hiçbir şey yazılmaz ve issue açılır.
+   (`canary: <kaynak> seçicileri otomatik tazelendi`), geçmezse hiçbir şey yazılmaz, push olmaz ve issue açılır.
    Korkuluklar: koşu başına en çok 1 tamir; betik yalnız `rules.json` yazar; şema alanı eklenemez,
    silinemez.
 
 Kuru koşu (API anahtarı gerekmez): `node canary/fix.mjs --dry-run --mock-response yanit.json [--snapshots dizin]`
 
-## Mac mini'de gece koşusu (birincil)
+## Mac mini'de gece koşusu
 
 akorlar.com Cloudflare'i GitHub'ın veri merkezi IP'lerini engelliyor (19.11.2026 ilk koşu: 403,
-"belirsiz"); ev bağlantısı geçiyor. Bu yüzden kanarya her gece 03:00'te (yerel saat) Mac mini'de
-`canary/run-local.sh` ile koşar; GitHub iş akışı (03:30 UTC) yedektir.
+"belirsiz"); ev bağlantısı geçiyor. Bu yüzden kanarya her gece 03:30'da (yerel saat) Mac mini'de
+`canary/run.sh` ile koşar: `git pull` → kontrol → kırıksa tamir → doğrulama kapısı geçerse
+`rules.json` commit + push, geçmezse push yok.
 
 Kurulum (bir kez, kalıcı kopyada — `~/projects/kumsal-rules`):
 
 ```
-canary/install-local.sh                                    # launchd kaydı
-security add-generic-password -U -s kumsal-canary -a anthropic -w   # Anthropic anahtarı (sorar)
-launchctl kickstart gui/$(id -u)/com.kumsal.canary         # elle bir koşu
-tail -n 20 ~/Library/Logs/kumsal-canary/canary.log
+canary/install-local.sh                                # launchd kaydı + gizliler dosyası iskeleti
+$EDITOR ~/.config/kumsal-canary/env                    # ANTHROPIC_API_KEY=... (ve isteğe bağlı NTFY_TOPIC=...)
+launchctl kickstart gui/$(id -u)/com.kumsal.canary     # elle bir koşu
+tail -n 20 ~/Library/Logs/kumsal-canary.log
 ```
 
-Gereksinimler: Mac mini açık ve kullanıcı oturumu açık (anahtarlık erişilebilir); `git push` ve
-`gh` (issue) için GitHub kimliği geçerli. Ağ yoksa koşu sessizce atlanır (yanlış alarm yok).
+- **Gizliler:** `~/.config/kumsal-canary/env` (chmod 600; `run.sh` source'lar). Anahtar repoya
+  ASLA girmez. Anahtar boşsa yalnız kontrol koşar; kırıkta tamir denenmez, "tamir edilemedi" sayılır.
+- **Bildirim:** `NTFY_TOPIC` tanımlıysa `ntfy.sh/<topic>`'e tek satır — 🟢 tamir edildi /
+  🔴 tamir edilemedi. Tamir edilemediyse ayrıca issue (`gh` kuruluysa). Olaysız gecede bildirim yok.
+- **Günlük:** `~/Library/Logs/kumsal-canary.log` (her koşu eklenir).
+
+Gereksinimler: Mac mini açık ve kullanıcı oturumu açık; `git push` ve `gh` (issue) için GitHub
+kimliği geçerli. Ağ yoksa koşu sessizce atlanır (yanlış alarm yok).
 
 ## Issue açılırsa
 
@@ -108,5 +117,5 @@ düşük sürümü reddeder). Yani revert'ten sonra `version`'ı son yayınlanan
 - Google kontrolü düz istekle neredeyse her zaman "belirsiz" kalır (Google JavaScript istiyor);
   SERP seçicilerinin gerçek sınaması uygulamanın içindeki tarayıcıda olur
   (`bridge.serpExtractFailed` telemetrisi).
-- GitHub'ın macOS makineleri veri merkezi IP'sidir; Cloudflare onları da sorgularsa kaynak
-  "belirsiz" kalır (yanlış alarm ve yanlış "tamir" olmaz, ama o gece sınanmamış olur).
+- GitHub'ın macOS makineleri veri merkezi IP'sidir; elle tetiklenen Actions koşusunda Cloudflare
+  korumalı kaynaklar "belirsiz" kalır (yanlış alarm ve yanlış "tamir" olmaz). Gerçek sınama Mac mini'de.
